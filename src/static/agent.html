@@ -23,7 +23,8 @@
         }
         .diff-line {
             font-family: 'Courier New', Courier, monospace;
-            white-space: pre;
+            white-space: pre-wrap; /* Fix for content overflow */
+            word-break: break-all;
         }
         .diff-add { color: #22c55e; background-color: rgba(34, 197, 94, 0.1); }
         .diff-remove { color: #ef4444; background-color: rgba(239, 68, 68, 0.1); }
@@ -100,6 +101,13 @@
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
+            }
+        });
+
+        // Use event delegation for dynamically created buttons
+        chatContainer.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'accept-btn') {
+                handleAcceptAndPush();
             }
         });
 
@@ -237,7 +245,11 @@
 
                 const simulatedNewContent = originalContent + `\n# AI-SUGGESTED CHANGE (using ${modelSwitcher.value}): ${goal} at ${new Date().toISOString()}\n`;
                 
-                pendingEdit = { path: filePath, newContent: simulatedNewContent };
+                // This is a mismatch fix: Python expects 'new_content' (snake_case)
+                pendingEdit = {
+                    path: filePath,
+                    new_content: simulatedNewContent
+                };
 
                 const diffResponse = await fetch(`${API_BASE}/agent/diff`, {
                     method: 'POST',
@@ -323,8 +335,9 @@
         function updateLastMessage(newContent) {
             const thinkingBubble = document.getElementById('thinking-bubble');
             if (thinkingBubble) {
-                thinkingBubble.parentElement.innerHTML = newContent;
-                thinkingBubble.parentElement.removeAttribute('id');
+                // Correctly update the bubble itself, not its parent
+                thinkingBubble.innerHTML = newContent;
+                thinkingBubble.removeAttribute('id');
             } else {
                  appendMessage('ai', newContent);
             }
